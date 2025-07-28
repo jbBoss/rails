@@ -1,0 +1,130 @@
+the commands i used to generate models are
+
+rails generate scaffold Province name:string gst_rate:decimal pst_rate:decimal hst_rate:decimal
+rails generate scaffold Category name:string
+rails generate scaffold User name:string email:string password_digest:string address:string is_admin:boolean province:references
+rails generate scaffold Product name:string description:text price_in_cents:integer active:boolean category:references
+rails generate scaffold Order status:string total_in_cents:integer stripe_payment_id:string user:references
+rails generate scaffold OrderedItem quantity:integer price_in_cents:integer order:references product:references
+rails db:migrate
+
+
+on console
+
+skip_tables = ["schema_migrations", "ar_internal_metadata"]
+ActiveRecord::Base.connection.tables.each do |table|
+  next if skip_tables.include?(table)
+
+  puts "\nTable: #{table}"
+  ActiveRecord::Base.connection.columns(table).each do |column|
+    puts "  - #{column.name}: #{column.sql_type}"
+  end
+end
+
+
+table and columns
+
+Table: ordered_items
+  - id: INTEGER
+  - quantity: INTEGER
+  - price_in_cents: INTEGER
+  - order_id: INTEGER
+  - product_id: INTEGER
+  - created_at: datetime(6)
+  - updated_at: datetime(6)
+
+Table: orders
+  - id: INTEGER
+  - status: varchar
+  - total_in_cents: INTEGER
+  - stripe_payment_id: varchar
+  - user_id: INTEGER
+  - created_at: datetime(6)
+  - updated_at: datetime(6)
+
+Table: products
+  - id: INTEGER
+  - name: varchar
+  - description: TEXT
+  - price_in_cents: INTEGER
+  - active: boolean
+  - category_id: INTEGER
+  - created_at: datetime(6)
+  - updated_at: datetime(6)
+
+Table: categories
+  - id: INTEGER
+  - name: varchar
+  - created_at: datetime(6)
+  - updated_at: datetime(6)
+
+Table: users
+  - id: INTEGER
+  - name: varchar
+  - email: varchar
+  - password_digest: varchar
+  - address: varchar
+  - is_admin: boolean
+  - province_id: INTEGER
+  - created_at: datetime(6)
+  - updated_at: datetime(6)
+
+Table: schema_migrations
+  - version: varchar
+
+Table: ar_internal_metadata
+  - key: varchar
+  - value: varchar
+  - created_at: datetime(6)
+  - updated_at: datetime(6)
+
+Table: provinces
+  - id: INTEGER
+  - name: varchar
+  - gst_rate: decimal
+  - pst_rate: decimal
+  - hst_rate: decimal
+  - created_at: datetime(6)
+  - updated_at: datetime(6)
+=> ["ordered_items", "orders", "products", "categories", "users", "schema_migrations", "ar_internal_metadata", "provinces"]
+
+Generate a Home controller with an index action
+
+rails generate controller Home index
+This creates:
+    app/controllers/home_controller.rb
+    app/views/home/index.html.erb (need to add content the "HTML")
+    A route entry for get 'home/index'
+
+to upload and associate an image with each new product we need active storage
+so:-
+rails active_storage:install
+rails db:migrate
+and update app/models/product.rb to associate it with an image:
+------------------------------------------------------------------
+class Product < ApplicationRecord
+  belongs_to :category
+  has_one_attached :main_image # Add this line
+end
+------------------------------------------------------------------
+then need to update your products_controller.rb to permit the new :main_image parameter
+ and modify your product form (app/views/products/_form.html.erb) to include a file input field.
+ To prevent errors if a product doesn't have a category assigned, it's safer to use the safe navigation operator (&.).
+ This will prevent your application from crashing.
+
+Here is the recommended code for your _product.html.erb file:
+Code snippet
+
+<%# In app/views/products/_product.html.erb %>
+
+<p>
+  <strong>Category:</strong>
+  <%= product.category&.name %>
+</p>
+
+This change works because your
+
+Product model belongs_to a Category. This association allows you to call
+
+product.category to get the full category object and then get its name with .name.
+The &. ensures that if product.category is nil, the code will return nothing instead of an error.
